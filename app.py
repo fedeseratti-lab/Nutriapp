@@ -12,8 +12,8 @@ ALTURA = 188.0   # cm
 EDAD = 45        # años
 
 # 🚨 PEGA AQUÍ EL ID DE TU GOOGLE SHEET (El código largo de tu enlace):
-GOOGLE_SHEET_ID = "https://docs.google.com/spreadsheets/d/1iMwrUi9CB8PUbIMC_T_kPw0Gn4xl0Tsou2hcTqFGnnA/edit?usp=sharing"
-CSV_URL = f"https://google.com{GOOGLE_SHEET_ID}/export?format=csv"
+GOOGLE_SHEET_ID = "spreadsheets/d/1iMwrUi9CB8PUbIMC_T_kPw0Gn4xl0Tsou2hcTqFGnnA/edit?usp=sharing"
+CSV_URL = f"https://docs.google.com{GOOGLE_SHEET_ID}/export?format=csv"
 
 # 2. CÁLCULO DE MACRONUTRIENTES OBJETIVO (Mifflin-St. Jeor + Superávit)
 tmb = (10 * PESO) + (6.25 * ALTURA) - (5 * EDAD) + 5
