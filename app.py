@@ -61,7 +61,7 @@ def analizar_comidas_con_groq(texto_comidas, key):
             response_format={"type": "json_object"},
             temperature=0.2
         )
-        texto_respuesta = response.choices.message.content
+        texto_respuesta = response.choices[0].message.content
         return json.loads(texto_respuesta)
     except Exception as e:
         st.error(f"Error al conectar con la API de Groq: {e}")
