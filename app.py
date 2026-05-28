@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 from datetime import date
 import json
+import requests
 from groq import Groq
 
 # 1. CONFIGURACIÓN DE PÁGINA Y DATOS DEL USUARIO (Perfil 90kg, 1.88m, 45 años)
@@ -11,9 +12,11 @@ PESO = 90.0      # kg
 ALTURA = 188.0   # cm
 EDAD = 45        # años
 
-# 🚨 PEGA AQUÍ EL ID DE TU GOOGLE SHEET (El código largo de tu enlace):
-GOOGLE_SHEET_ID = "spreadsheets/d/1iMwrUi9CB8PUbIMC_T_kPw0Gn4xl0Tsou2hcTqFGnnA/edit?usp=sharing"
-CSV_URL = f"https://docs.google.com{GOOGLE_SHEET_ID}/export?format=csv"
+# 🚨 CONFIGURA TUS DOS ENLACES DE GOOGLE AQUÍ:
+GOOGLE_SHEET_ID = "https://docs.google.com/spreadsheets/d/1iMwrUi9CB8PUbIMC_T_kPw0Gn4xl0Tsou2hcTqFGnnA/edit?usp=sharing"
+WEBHOOK_URL = "https://script.google.com/macros/s/AKfycbwdUZVWB7cmjp3JFySv0dJ-cE1_tb1G98RM4J6ZgnfS9E-TwgwQNMiSqWb8cQm9ozLT/exec"
+
+CSV_URL = f"https://google.com{GOOGLE_SHEET_ID}/export?format=csv"
 
 # 2. CÁLCULO DE MACRONUTRIENTES OBJETIVO (Mifflin-St. Jeor + Superávit)
 tmb = (10 * PESO) + (6.25 * ALTURA) - (5 * EDAD) + 5
@@ -26,26 +29,13 @@ carbohidratos_cal = CALORIAS_OBJETIVO - (PROTEINA_OBJETIVO * 4) - (GRASAS_OBJETI
 CARBOHIDRATOS_OBJETIVO = int(carbohidratos_cal / 4)
 
 # 3. LEER LA API KEY DE LOS SECRETOS DE STREAMLIT
-# Esto evita que tengas que escribir la clave en pantalla continuamente
 try:
     GROQ_API_KEY = st.secrets["GROQ_API_KEY"]
 except Exception:
     st.error("❌ Error: No se encontró la API Key en las configuraciones secretas del servidor.")
     st.stop()
 
-# 4. INTERFAZ GRÁFICA PREMIUM
-st.title("🏋️‍♂️ NutriFit AI Cloud")
-st.subheader("Tu panel de hipertrofia portable conectado a la nube")
-
-st.sidebar.header("🎯 Tu Perfil Calibrado")
-st.sidebar.write(f"**Edad:** {EDAD} años | **Peso:** {PESO} kg | **Altura:** {ALTURA/100} m")
-st.sidebar.subheader("Metas Diarias Requeridas:")
-st.sidebar.info(f"🔥 **Calorías:** {CALORIAS_OBJETIVO} kcal\n\n"
-                f"🍗 **Proteínas:** {PROTEINA_OBJETIVO} g\n\n"
-                f"🍞 **Carbohidratos:** {CARBOHIDRATOS_OBJETIVO} g\n\n"
-                f"🥑 **Grasas:** {GRASAS_OBJETIVO} g")
-
-# 5. FUNCIÓN PARA ANALIZAR CON LA IA DE GROQ
+# 4. FUNCIÓN PARA ANALIZAR CON LA IA DE GROQ
 def analizar_comidas_con_groq(texto_comidas, key):
     client = Groq(api_key=key)
     prompt = f"""
@@ -67,40 +57,65 @@ def analizar_comidas_con_groq(texto_comidas, key):
         st.error(f"Error al conectar con la API de Groq: {e}")
         return None
 
-# 6. GESTIÓN DEL ENVIÓ A GOOGLE SHEETS
-def guardar_en_google_sheets(cal, prot, carb, gras):
-    # Generamos la URL de Google Form o una API de Google requiere credenciales complejas JSON.
-    # Para hacerlo 100% simple e inmediato sin configurar credenciales de Google Cloud,
-    # el método recomendado por Streamlit es usar st.experimental_connection o gspread.
-    # Optamos por indicarte el envío simplificado mediante un Webhook o mostrar el link de carga.
-    pass
+# 5. GESTIÓN AUTOMÁTICA DE ESCRITURA EN GOOGLE SHEETS
+def guardar_en_google_sheets(macros):
+    payload = {
+        "fecha": str(date.today()),
+        "calorias": int(macros["calorias"]),
+        "proteinas": int(macros["proteinas"]),
+        "carbohidratos": int(macros["carbohidratos"]),
+        "grasas": int(macros["grasas"])
+    }
+    try:
+        response = requests.post(WEBHOOK_URL, json=payload)
+        if response.status_code == 200:
+            return True
+    except Exception as e:
+        st.error(f"No se pudo guardar automáticamente en Google Sheets: {e}")
+    return False
 
-# NOTA: Para no complicarte con claves complejas de Google Cloud API, la app leerá tu Excel público mediante pandas de forma nativa para los gráficos:
+# 6. LEER HISTORIAL DE GOOGLE SHEETS
 def obtener_historial_google():
     try:
-        df = pd.read_csv(CSV_URL)
+        # Forzamos a pandas a descargar la versión más reciente sin usar caché del navegador
+        df = pd.read_csv(f"{CSV_URL}&nocache={date.today()}")
         return df
     except Exception:
         return pd.DataFrame(columns=["Fecha", "Calorias", "Proteinas", "Carbohidratos", "Grasas"])
 
-# 7. ENTRADA DE DATOS DEL USUARIO
+# 7. INTERFAZ GRÁFICA PANEL PRINCIPAL
+st.title("🏋️‍♂️ Panel de Hipertrofia Avanzada")
+st.subheader("Tu nutrición inteligente en la nube libre de cargas manuales")
+
+st.sidebar.header("🎯 Perfil Calibrado")
+st.sidebar.write(f"**Edad:** {EDAD} años | **Peso:** {PESO} kg | **Altura:** {ALTURA/100} m")
+st.sidebar.subheader("Metas Diarias:")
+st.sidebar.info(f"🔥 **Calorías:** {CALORIAS_OBJETIVO} kcal\n\n"
+                f"🍗 **Proteínas:** {PROTEINA_OBJETIVO} g\n\n"
+                f"🍞 **Carbohidratos:** {CARBOHIDRATOS_OBJETIVO} g\n\n"
+                f"🥑 **Grasas:** {GRASAS_OBJETIVO} g")
+
 st.header("📝 ¿Qué comiste hoy?")
 comidas_usuario = st.text_area(
-    "Describe tus platos de forma libre (Desayuno, almuerzo, merienda, cena):",
+    "Describe tus platos de forma libre:",
     value="Desayuno: un vaso de yogur bebible de vainilla con 4 galletas integrales con chips de chocolate.\nAlmuerzo: 2 porciones de tarta de puerro y cebolla y una banana de postre.",
     height=120
 )
 
-# Botón para procesar usando un truco simplificado de persistencia
-if st.button("🚀 Analizar comidas"):
-    with st.spinner("La IA de Groq está procesando tus datos..."):
+if st.button("🚀 Analizar comidas y guardar"):
+    with st.spinner("La IA de Groq está procesando tus datos y sincronizando con Google Drive..."):
         macros_estimados = analizar_comidas_con_groq(comidas_usuario, GROQ_API_KEY)
         if macros_estimados:
             st.session_state["macros_cloud"] = macros_estimados
-            st.success("✅ ¡Comidas analizadas con éxito!")
-            st.info("💡 Consejo: Copia los datos en tu Google Sheet si deseas registrarlos permanentemente.")
+            
+            # Guardado automático
+            exito = guardar_en_google_sheets(macros_estimados)
+            if exito:
+                st.success("✅ ¡Comidas analizadas y guardadas automáticamente en tu Google Sheet!")
+            else:
+                st.warning("⚠️ Los macros se calcularon pero hubo un problema al escribir en Google Sheets.")
 
-# 8. DESPLIEGUE DE RESULTADOS Y DIAGNÓSTICO
+# 8. DESPLIEGUE DE RESULTADOS DIARIOS
 if "macros_cloud" in st.session_state:
     m = st.session_state["macros_cloud"]
     st.header("📊 Balance Nutricional de Hoy")
@@ -113,18 +128,27 @@ if "macros_cloud" in st.session_state:
     
     st.subheader("💡 Recomendación de Ajustes Inmediatos")
     if m["proteinas"] < PROTEINA_OBJETIVO:
-        st.error(f"🔴 **Falta Proteína:** Estás {PROTEINA_OBJETIVO - m['proteinas']}g abajo de tu meta de hipertrofia. Aumenta la presencia de carnes magras o huevos en tu próxima comida.")
+        st.error(f"🔴 **Falta Proteína:** Estás {PROTEINA_OBJETIVO - m['proteinas']}g abajo de tu meta. Necesitas más aminoácidos para estimular la hipertrofia a tus 45 años.")
     else:
-        st.success("🟢 **Proteína Óptima:** ¡Excelente! Umbral anabólico cubierto para proteger y crear masa muscular.")
+        st.success("🟢 **Proteína Óptima:** Umbral de síntesis muscular cubierto.")
 
-# 9. INTEGRACIÓN VISUAL DEL HISTORIAL DESDE GOOGLE SHEETS
+# 9. INTEGRACIÓN VISUAL DEL HISTORIAL ESTADÍSTICO
 st.markdown("---")
-st.header("📅 Tu Historial de Progreso en Google Sheets")
+st.header("📅 Tu Progreso Histórico")
 df_google = obtener_historial_google()
 
-if not df_google.empty:
+if not df_google.empty and len(df_google) > 0:
+    # Mostrar tabla con los últimos 7 días
+    st.write("Últimos días registrados:")
     st.dataframe(df_google.tail(7), use_container_width=True)
-    st.subheader("Evolución de Ingesta Calórica")
-    st.line_chart(df_google.set_index("Fecha")["Calorias"])
+    
+    # Gráficos estadísticos interactivos
+    st.subheader("📈 Evolución del Consumo Calórico vs Meta")
+    # Línea de consumo real
+    df_grafico = df_google.set_index("Fecha")
+    st.line_chart(df_grafico["Calorias"])
+    
+    st.subheader("🍗 Evolución del Consumo de Proteínas")
+    st.bar_chart(df_grafico["Proteinas"])
 else:
-    st.info(f"Visualización activa conectada a tu Google Sheet. Para ver tus gráficos aquí, introduce las filas correspondientes en tu documento de Google Drive.")
+    st.info("📊 Tu Google Sheet está conectado. En cuanto guardes tus primeros días mediante el botón, aquí verás las gráficas automáticas de tu evolución de calorías y proteínas.")
