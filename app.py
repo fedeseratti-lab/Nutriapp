@@ -13,7 +13,7 @@ ALTURA = 188.0   # cm
 EDAD = 45        # años
 
 # 🚨 CONFIGURA TUS DOS ENLACES DE GOOGLE AQUÍ:
-GOOGLE_SHEET_ID = "https://docs.google.com/spreadsheets/d/1iMwrUi9CB8PUbIMC_T_kPw0Gn4xl0Tsou2hcTqFGnnA/edit?usp=sharing"
+GOOGLE_SHEET_ID = "1iMwrUi9CB8PUbIMC_T_kPw0Gn4xl0Tsou2hcTqFGnnA"
 WEBHOOK_URL = "https://script.google.com/macros/s/AKfycbwdUZVWB7cmjp3JFySv0dJ-cE1_tb1G98RM4J6ZgnfS9E-TwgwQNMiSqWb8cQm9ozLT/exec"
 
 CSV_URL = f"https://google.com{GOOGLE_SHEET_ID}/export?format=csv"
