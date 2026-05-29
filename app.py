@@ -104,7 +104,6 @@ with st.sidebar.expander("Modificar Datos Físicos"):
         st.session_state.proteinas_meta = int(st.session_state.peso * 2.1)
         st.session_state.grasas_meta = int(st.session_state.peso * 1.0)
         st.session_state.carbos_meta = int((st.session_state.calorias_meta - (st.session_state.proteinas_meta * 4) - (st.session_state.grasas_meta * 9)) / 4)
-        st.rerun()
 
 with st.sidebar.expander("Editar Objetivos a Mano"):
     st.session_state.calorias_meta = st.number_input("Meta Calorías (kcal):", value=st.session_state.calorias_meta, step=50)
@@ -156,7 +155,6 @@ def procesar_y_limpiar():
                 st.success("✅ ¡Datos sincronizados con éxito en tu Google Sheet!")
                 # Borramos el cuadro de texto cambiando el valor en la sesión
                 st.session_state.comidas_input = ""
-                st.rerun()
             else:
                 st.warning("⚠️ Los macros se calcularon pero hubo un problema al escribir en Google Sheets. Revisa la URL de tu implementación web.")
 
